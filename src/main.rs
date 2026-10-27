@@ -236,6 +236,7 @@ fn run_tui(
     let mut sort_column = SortColumn::Name;
     let mut descending = false;
     let mut list_offset = 0usize;
+    let mut last_click = None;
     let mut message = "Space: select  Enter: uninstall selection  /: search  q: quit".to_owned();
 
     loop {
@@ -274,14 +275,21 @@ fn run_tui(
                     list_offset = (list_offset + 3).min(visible.len().saturating_sub(1));
                 }
                 MouseEventKind::Down(crossterm::event::MouseButton::Left)
-                    if !confirm && !help && !searching =>
+                    if !confirm && !help =>
                 {
                     let available_lines = terminal.size()?.height.saturating_sub(13) as usize;
                     if let Some(row) =
                         clicked_row(&visible, list_offset, mouse.row, available_lines)
                     {
-                        if app_index(&visible[row]).is_some() {
+                        if let Some(index) = app_index(&visible[row]) {
                             cursor = row;
+                            let now = std::time::Instant::now();
+                            if last_click.is_some_and(|(previous, time)| previous == row && now.duration_since(time).as_millis() <= 500) {
+                                toggle_selection(&mut selected, index);
+                                last_click = None;
+                            } else {
+                                last_click = Some((row, now));
+                            }
                         }
                     }
                 }
@@ -338,6 +346,13 @@ fn run_tui(
         if searching {
             match key.code {
                 KeyCode::Esc | KeyCode::Enter => searching = false,
+                KeyCode::Up => { cursor = move_cursor(&visible, cursor, false); list_offset = cursor; }
+                KeyCode::Down => { cursor = move_cursor(&visible, cursor, true); list_offset = cursor; }
+                KeyCode::Char(' ') => {
+                    if let Some(index) = visible.get(cursor).and_then(app_index) {
+                        toggle_selection(&mut selected, index);
+                    }
+                }
                 KeyCode::Backspace => {
                     filter.pop();
                     cursor = 0;
@@ -372,9 +387,7 @@ fn run_tui(
             KeyCode::Char('r') => descending = !descending,
             KeyCode::Char(' ') => {
                 if let Some(index) = visible.get(cursor).and_then(app_index) {
-                    if !selected.insert(index) {
-                        selected.remove(&index);
-                    }
+                    toggle_selection(&mut selected, index);
                 }
             }
             KeyCode::Char('c') if !selected.is_empty() => {
@@ -591,6 +604,12 @@ fn uninstall_targets(rows: &[VisibleRow], cursor: usize, selected: &BTreeSet<usi
         rows.get(cursor).and_then(app_index).into_iter().collect()
     } else {
         selected.iter().copied().collect()
+    }
+}
+
+fn toggle_selection(selected: &mut BTreeSet<usize>, index: usize) {
+    if !selected.insert(index) {
+        selected.remove(&index);
     }
 }
 
