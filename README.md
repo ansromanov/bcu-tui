@@ -10,21 +10,21 @@ Point `BCU_CONSOLE` at `BCU-console.exe` (or `BCU-console.dll`) if it is not bes
 
 ```powershell
 $env:BCU_CONSOLE = 'C:\path\to\BCU-console.exe'
-cargo run --release
+just run
 ```
 
-Requires Windows and Rust. To build the TUI executable:
+Requires Windows, Rust, and [just](https://github.com/casey/just). Run `just` to list available commands. Build the TUI executable with:
 
 ```powershell
-cargo build --release
+just build
 ```
 
 ## Controls
 
 - Up/Down or `j`/`k`: move; PageUp/PageDown: jump ten apps
-- Mouse wheel: scroll the view without changing the highlighted app; left-click: highlight an app
+- Mouse wheel: scroll the view without changing the highlighted app; left-click: highlight, double-click: toggle selection
 - Space: toggle app selection; Enter: review the batch; `y`: confirm
-- `/`: search by app name or publisher; `c`: clear selection
+- `/`: search by app name or publisher; Up/Down and Space work in search; `c`: clear selection
 - `1`/`2`/`3`: sort by name/version/publisher; `r`: reverse order
 - `?` or `h`: help; `q` or Esc: quit
 
